@@ -82,6 +82,8 @@ Removed APIs and options
 * The :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME_EXCLUSIVE` option has been removed
   after being deprecated in favor of :kconfig:option:`CONFIG_PM_DEVICE_SYSTEM_MANAGED`.
 
+* The ``z_pm_save_idle_exit()`` PM API function has been removed.
+
 
 Deprecated APIs and options
 ===========================
@@ -531,6 +533,7 @@ New Drivers
    * :dtcompatible:`adi,adxl366`
    * :dtcompatible:`hc-sr04`
    * :dtcompatible:`invensense,icm42670s`
+   * :dtcompatible:`invensense,icm42370`
    * :dtcompatible:`maxim,ds3231-sensor`
    * :dtcompatible:`melexis,mlx90394`
    * :dtcompatible:`nordic,npm2100-vbat`
