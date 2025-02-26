@@ -1,8 +1,5 @@
 .. zephyr:board:: voice_ra4e1
 
-RA4E1 Voice User Reference Kit
-##############################
-
 Overview
 ********
 
@@ -93,7 +90,7 @@ Flashing
 ========
 
 Program can be flashed to VOICE-RA4E1 via the on-board SEGGER J-Link debugger.
-SEGGER J-link's drivers are avaialbe at https://www.segger.com/downloads/jlink/
+SEGGER J-link's drivers are available at https://www.segger.com/downloads/jlink/
 
 To flash the program to board
 

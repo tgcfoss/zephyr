@@ -323,6 +323,7 @@ New Boards
 
 * Renesas Electronics Corporation
 
+   * :zephyr:board:`ek_ra2l1` (``ek_ra2l1``)
    * :zephyr:board:`ek_ra4l1` (``ek_ra4l1``)
    * :zephyr:board:`ek_ra4m1` (``ek_ra4m1``)
    * :zephyr:board:`fpb_ra4e1` (``fpb_ra4e1``)
@@ -433,6 +434,7 @@ New Drivers
    * :dtcompatible:`nordic,nrf-hsfll-global`
    * :dtcompatible:`nuvoton,npcm-pcc`
    * :dtcompatible:`realtek,rts5912-sccon`
+   * :dtcompatible:`renesas,rz-cpg`
    * :dtcompatible:`st,stm32n6-cpu-clock-mux`
    * :dtcompatible:`st,stm32n6-hse-clock`
    * :dtcompatible:`st,stm32n6-ic-clock-mux`
@@ -443,7 +445,7 @@ New Drivers
    * :dtcompatible:`wch,ch32v00x-pll-clock`
    * :dtcompatible:`wch,rcc`
 
-* comparator
+* Comparator
 
    * :dtcompatible:`silabs,acmp`
 
@@ -485,6 +487,10 @@ New Drivers
 * :abbr:`DSA (Distributed Switch Architecture)`
 
    * :dtcompatible:`nxp,netc-switch`
+
+* :abbr:`EEPROM (Electrically Erasable Programmable Read-Only Memory)`
+
+  *  :dtcompatible:`fujitsu,mb85rsxx`
 
 * Ethernet
 
@@ -540,6 +546,7 @@ New Drivers
 
 * :abbr:`I2C (Inter-Integrated Circuit)`
 
+   * :dtcompatible:`nordic,nrf-twis`
    * :dtcompatible:`nxp,ii2c`
    * :dtcompatible:`ti,omap-i2c`
    * :dtcompatible:`ti,tca9544a`
@@ -607,7 +614,6 @@ New Drivers
 
 * :abbr:`MTD (Memory Technology Device)`
 
-   * :dtcompatible:`fujitsu,mb85rsxx`
    * :dtcompatible:`nxp,s32-qspi-hyperflash`
    * :dtcompatible:`nxp,xspi-mx25um51345g`
    * :dtcompatible:`ti,cc23x0-ccfg-flash`
@@ -796,6 +802,11 @@ Other notable changes
 ..
   Any more descriptive subsystem or driver changes. Do you really want to write
   a paragraph or is it enough to link to the api/driver/Kconfig/board page above?
+
+* A header file has been introduced to allocate ID ranges for persistent keys in the PSA Crypto API.
+  It defines the ID ranges allocated to different users of the API (application, subsystems...).
+  Users of the API must now use this header file to construct persistent key IDs.
+  See :zephyr_file:`include/zephyr/psa/key_ids.h` for more information. (:github:`85581`)
 
 * Space-separated lists support has been removed from Twister configuration
   files. This feature was deprecated a long time ago. Projects that do still use

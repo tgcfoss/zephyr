@@ -164,6 +164,9 @@ Counter
 Controller Area Network (CAN)
 =============================
 
+* Renamed the :dtcompatible:`infineon,xmc4xxx-can-node` devicetree property ``clock_div8`` to
+  ``clock-div8`` (:github:`83782`).
+
 Display
 =======
 
@@ -663,6 +666,8 @@ MCUmgr
 * The Kconfig :kconfig:option:`CONFIG_MCUBOOT_BOOTLOADER_MODE_SWAP_WITHOUT_SCRATCH` has been
   deprecated and replaced with :kconfig:option:`CONFIG_MCUBOOT_BOOTLOADER_MODE_SWAP_USING_MOVE`,
   applications should be updated to select this new symbol if they were selecting the old symbol.
+
+* The deprecated macro ``MGMT_CB_ERROR_RET`` has been removed.
 
 Modem
 =====
