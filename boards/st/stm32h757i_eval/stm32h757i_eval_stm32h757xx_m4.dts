@@ -56,11 +56,5 @@
 };
 
 &usart1 {
-	/* status = "okay"; */
+	status = "okay";
 };
-
-&uart8 {
-	/*status = "okay";*/
-};
-
-//arduino_serial: &uart8 {};

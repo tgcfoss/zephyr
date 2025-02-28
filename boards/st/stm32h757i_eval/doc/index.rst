@@ -1,16 +1,16 @@
 .. zephyr:board:: stm32h757i_eval
 
-NOT CORRECT! COPIED FROM STM32H747I_DISCO - NEEDS UPDATING!!!
-*************************************************************
-
 Overview
 ********
 
-The discovery kit enables a wide diversity of applications taking benefit
+The evaluation kit enables a wide diversity of applications taking benefit
 from audio, multi-sensor support, graphics, security, video,
 and high-speed connectivity features.
 
-The board includes an STM32H747XI SoC with a high-performance DSP, Arm Cortex-M7 + Cortex-M4 MCU,
+The STM32H7X7I-eval board comes with both the STM32H757XI SoC and the STM32H747XI SoC.
+But in the following documentation, we will focus on the STM32H757XI SoC, but both should work.
+
+The board includes an STM32H757XI SoC with a high-performance DSP, Arm Cortex-M7 + Cortex-M4 MCU,
 with 2MBytes of Flash memory, 1MB RAM, 480 MHz CPU, Art Accelerator, L1 cache, external memory interface,
 large set of peripherals, SMPS, and MIPI-DSI.
 
@@ -24,27 +24,31 @@ Additionally, the board features:
 
 - 4” capacitive touch LCD display module with MIPI® DSI interface
 - Ethernet compliant with IEEE802.3-2002
-- USB OTG HS
-- Stereo speaker outputs
+- USB OTG HS and OTG FS
+- I2C compatible serial interface
+- RTC with rechargeable backup battery
+- SAI audio DAC
 - ST-MEMS digital microphones
-- 2 x 512-Mbit QUAD-SPI NOR Flash memory
-- 256-Mbit SDRAM
+- 8-Gbyte (or more) SDIO 3.0 interface microSD card
+- 8 M×32bit SDRAM, 1 M×16bit SDRAM and 8 M×16bit NOR flash memory
+- 1-Gbit twin Quad-SPI NOR flash memory or two 512-Mbit Quad-SPI NOR flash memories
+- Potentiometer
 - 4 color user LEDs
-- 1 user and reset push-button
-- 4-direction joystick with selection button
-- Arduino Uno V3 connectors
+- Reset, wakeup, tamper, or key buttons
+- Joystick with 4-direction control and selector
 
-More information about the board can be found at the `STM32H747I-DISCO website`_.
-More information about STM32H747XIH6 can be found here:
 
-- `STM32H747XI on www.st.com`_
-- `STM32H747xx reference manual`_
-- `STM32H747xx datasheet`_
+More information about the board can be found at the `STM32H757I-EVAL website`_.
+More information about STM32H757XIH6 can be found here:
+
+- `STM32H757XI on www.st.com`_
+- `STM32H757xx reference manual`_
+- `STM32H757xx datasheet`_
 
 Supported Features
 ==================
 
-The current Zephyr stm32h747i_disco board configuration supports the following hardware features:
+The current Zephyr stm32h757i_eval board configuration supports the following hardware features:
 
 +-----------+------------+-------------------------------------+
 | Interface | Controller | Driver/Component                    |
@@ -60,7 +64,7 @@ The current Zephyr stm32h747i_disco board configuration supports the following h
 +-----------+------------+-------------------------------------+
 | FLASH     | on-chip    | flash memory                        |
 +-----------+------------+-------------------------------------+
-| ETHERNET  | on-chip    | ethernet  (*)                       |
+| ETHERNET  | on-chip    | ethernet                            |
 +-----------+------------+-------------------------------------+
 | RNG       | on-chip    | True Random number generator        |
 +-----------+------------+-------------------------------------+
@@ -78,47 +82,40 @@ The current Zephyr stm32h747i_disco board configuration supports the following h
 |           |            | st_b_lcd40_dsi1_mb1166              |
 +-----------+------------+-------------------------------------+
 
-(*) From UM2411 Rev 4:
-   With the default setting, the Ethernet feature is not working because of
-   a conflict between ETH_MDC and SAI4_D1 of the MEMs digital microphone.
-   Make sure you have SB8 closed and SB21 open to get Ethernet working.
-
 Other hardware features are not yet supported on Zephyr porting.
 
 The default configuration per core can be found in the defconfig files:
-:zephyr_file:`boards/st/stm32h747i_disco/stm32h747i_disco_stm32h747xx_m7_defconfig` and
-:zephyr_file:`boards/st/stm32h747i_disco/stm32h747i_disco_stm32h747xx_m4_defconfig`
+:zephyr_file:`boards/st/stm32h757i_eval/stm32h757i_eval_stm32h757xx_m7_defconfig` and
+:zephyr_file:`boards/st/stm32h757i_eval/stm32h757i_eval_stm32h757xx_m4_defconfig`
 
 Pin Mapping
 ===========
 
-STM32H747I Discovery kit has 9 GPIO controllers. These controllers are responsible for pin muxing,
+STM32H757I Discovery kit has 9 GPIO controllers. These controllers are responsible for pin muxing,
 input/output, pull-up, etc.
 
-For more details please refer to `STM32H747I-DISCO website`_.
+For more details please refer to `STM32H757I-EVAL website`_.
 
 Default Zephyr Peripheral Mapping:
 ----------------------------------
 
 - UART_1 TX/RX : PA9/PA10 (ST-Link Virtual Port Com)
-- UART_8 TX/RX : PJ8/PJ9 (Arduino Serial)
-- SPI_5 NSS/SCK/MISO/MOSI : PK1/PK0/PJ11/PJ10 (Arduino SPI)
 - SDMMC_1 D0/D1/D2/D3/CK/CMD: PC8/PC9/PC10/PC11/PC12/PD2
-- LD1 : PI12
-- LD2 : PI13
-- LD3 : PI14
-- LD4 : PI15
-- W-UP : PC13
-- J-CENTER : PK2
-- J-DOWN : PK3
-- J-LEFT : PK4
-- J-RIGHT : PK5
-- J-UP : PK6
+- LD1 : PK3
+- LD2 : PK4
+- LD3 : PK5
+- LD4 : PK6
+- W-UP : PA0
+- J-CENTER : PB0
+- J-DOWN : PB1
+- J-LEFT : PB2
+- J-RIGHT : PB3
+- J-UP : PB4
 
 System Clock
 ============
 
-The STM32H747I System Clock can be driven by an internal or external oscillator,
+The STM32H757I System Clock can be driven by an internal or external oscillator,
 as well as by the main PLL clock. By default, the CPU1 (Cortex-M7) System clock
 is driven by the PLL clock at 400MHz, and the CPU2 (Cortex-M4) System clock
 is driven at 200MHz. PLL clock is feed by a 25MHz high speed external clock.
@@ -126,45 +123,21 @@ is driven at 200MHz. PLL clock is feed by a 25MHz high speed external clock.
 Serial Port
 ===========
 
-The STM32H747I Discovery kit has up to 8 UARTs.
-Default configuration assigns USART1 and UART8 to the CPU1. The Zephyr console
+Default configuration assigns USART1 to the CPU1. The Zephyr console
 output is assigned to UART1 which connected to the onboard ST-LINK/V3.0. Virtual
 COM port interface. Default communication settings are 115200 8N1.
-
-Ethernet
-========
-
-**Disclaimer:** This section is mostly copy-paste of corresponding
-`DISCO_H747I modifications for Ethernet`_ mbed blog post. The author of this
-article sincerely allowed to use the images and his knowledge about necessary
-HW modifications to get Ethernet working with this board.
-
-To get Ethernet working following HW modifications are required:
-
-- **SB21**, **SB45** and **R87** should be opened
-- **SB22**, **SB44**, **SB17** and **SB8** should be closed
-
-Following two images shows necessary changes on the board marked:
-
-.. image:: img/disco_h747i_ethernet_modification_1.jpg
-     :align: center
-     :alt: STM32H747I-DISCO - Ethernet modification 1 (**SB44**, **SB45**)
-
-.. image:: img/disco_h747i_ethernet_modification_2.jpg
-     :align: center
-     :alt: STM32H747I-DISCO - Ethernet modification 2 (**SB21**, **R87**, **SB22**, **SB17** and **SB8**)
 
 Display
 =======
 
-The STM32H747I Discovery kit has a dedicated DSI LCD connector **CN15**, where
+The STM32H757I Eval kit has a dedicated DSI LCD connector **CN15**, where
 the MB1166 (B-LCD40-DSI1) display extension board can be mounted. Enable display
 support in Zephyr by adding the shield ``st_b_lcd40_dsi1_mb1166`` or
 ``st_b_lcd40_dsi1_mb1166_a09`` to your build command, for example:
 
 .. zephyr-app-commands::
    :zephyr-app: samples/drivers/display
-   :board: stm32h747i_disco/stm32h747xx/m7
+   :board: stm32h757i_eval/stm32h757xx/m7
    :shield: st_b_lcd40_dsi1_mb1166
    :goals: build flash
 
@@ -180,7 +153,7 @@ support in Zephyr by adding the shield ``st_b_lcd40_dsi1_mb1166`` or
 Resources sharing
 =================
 
-The dual core nature of STM32H747 SoC requires sharing HW resources between the
+The dual core nature of STM32H757 SoC requires sharing HW resources between the
 two cores. This is done in 3 ways:
 
 - **Compilation**: Clock configuration is only accessible to M7 core. M4 core only
@@ -195,10 +168,10 @@ two cores. This is done in 3 ways:
 Programming and Debugging
 *************************
 
-STM32H747I-DISCO board includes an ST-LINK/V3 embedded debug tool interface.
+STM32H757I-EVAL board includes an ST-LINK/V3 embedded debug tool interface.
 
-Applications for the ``stm32h747i_disco`` board should be built per core target,
-using either ``stm32h747i_disco/stm32h747xx/m7`` or ``stm32h747i_disco/stm32h747xx/m4``
+Applications for the ``stm32h757i_disco`` board should be built per core target,
+using either ``stm32h757i_eval/stm32h757xx/m7`` or ``stm32h757i_eval/stm32h757xx/m4``
 as the target.
 See :ref:`build_an_application` for more information about application builds.
 
@@ -250,17 +223,17 @@ automatically.
 
 Zephyr flash configuration has been set to meet these default settings.
 
-Flashing an application to STM32H747I M7 Core
+Flashing an application to STM32H757I M7 Core
 ---------------------------------------------
 
-First, connect the STM32H747I Discovery kit to your host computer using
+First, connect the STM32H757I Eval kit to your host computer using
 the USB port to prepare it for flashing. Then build and flash your application.
 
 Here is an example for the :zephyr:code-sample:`hello_world` application.
 
 .. zephyr-app-commands::
    :zephyr-app: samples/hello_world
-   :board: stm32h747i_disco/stm32h747xx/m7
+   :board: stm32h757i_eval/stm32h757xx/m7
    :goals: build flash
 
 Run a serial host program to connect with your board:
@@ -273,7 +246,7 @@ You should see the following message on the console:
 
 .. code-block:: console
 
-   Hello World! stm32h747i_disco
+   Hello World! stm32h757i_disco
 
 .. note::
   Sometimes, flashing is not working. It is necessary to erase the flash
@@ -286,7 +259,7 @@ Here is an example for the :zephyr:code-sample:`blinky` application on M4 core.
 
 .. zephyr-app-commands::
    :zephyr-app: samples/basic/blinky
-   :board: stm32h747i_disco/stm32h747xx/m7
+   :board: stm32h757i_eval/stm32h757xx/m7
    :goals: build flash
 
 Debugging
@@ -297,23 +270,23 @@ for the :zephyr:code-sample:`hello_world` application.
 
 .. zephyr-app-commands::
    :zephyr-app: samples/hello_world
-   :board: stm32h747i_disco/stm32h747xx/m7
+   :board: stm32h757i_eval/stm32h757xx/m7
    :goals: debug
 
 Debugging a Zephyr application on Cortex M4 side with west is currently not available.
 As a workaround, you can use `STM32CubeIDE`_.
 
-.. _STM32H747I-DISCO website:
-   https://www.st.com/en/evaluation-tools/stm32h747i-disco.html
+.. _STM32H757I-EVAL website:
+   https://www.st.com/en/evaluation-tools/stm32h757i-eval.html
 
-.. _STM32H747XI on www.st.com:
-   https://www.st.com/content/st_com/en/products/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus/stm32-high-performance-mcus/stm32h7-series/stm32h747-757/stm32h747xi.html
+.. _STM32H757XI on www.st.com:
+   https://www.st.com/en/microcontrollers-microprocessors/stm32h757xi.html
 
-.. _STM32H747xx reference manual:
-   https://www.st.com/resource/en/reference_manual/dm00176879.pdf
+.. _STM32H757xx reference manual:
+   https://www.st.com/resource/en/reference_manual/rm0399-stm32h745755-and-stm32h747757-advanced-armbased-32bit-mcus-stmicroelectronics.pdf
 
-.. _STM32H747xx datasheet:
-   https://www.st.com/resource/en/datasheet/stm32h747xi.pdf
+.. _STM32H757xx datasheet:
+   https://www.st.com/resource/en/datasheet/stm32h757xi.pdf
 
 .. _STM32CubeProgrammer:
    https://www.st.com/en/development-tools/stm32cubeprog.html
