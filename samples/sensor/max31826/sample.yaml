@@ -1,0 +1,17 @@
+sample:
+  name: MAX31826 Temperature Sensor sample
+common:
+  harness: console
+  tags: sensors
+tests:
+  sample.sensor.max31826.w1_arduino_serial:
+    platform_allow: nucleo_g071rb
+    depends_on: arduino_serial
+    integration_platforms:
+      - nucleo_g071rb
+    extra_args: "DTC_OVERLAY_FILE=arduino_serial.overlay"
+    harness_config:
+      type: one_line
+      regex:
+        - "Temp: (.*)"
+      fixture: fixture_w1_arduino_serial_max31826
