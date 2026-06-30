@@ -88,6 +88,7 @@ set(eraseprotect_args)
 set(approtect_args)
 set(protectedmem_args)
 set(periphconf_args)
+set(snapshot_args)
 set(mpcconf_args)
 set(wdtstart_args)
 set(periphconf_elfs)
@@ -105,6 +106,11 @@ set(secondary_mpcconf_hex_file ${APPLICATION_BINARY_DIR}/zephyr/secondary_mpccon
 # These are always output, others depend on the options
 set(gen_uicr_outputs ${merged_hex_file} ${uicr_hex_file})
 set(gen_uicr_depends)
+
+# Inform sysbuild about the outputs to allow creating proper dependencies
+# Use a standard variable name for the main output file (to be flashed)
+set(BYPRODUCT_KERNEL_HEX_NAME ${merged_hex_file} CACHE FILEPATH "Merged hex file" FORCE)
+set(BYPRODUCT_GEN_UICR_UICR_HEX_NAME ${uicr_hex_file} CACHE FILEPATH "UICR hex file" FORCE)
 
 # Get UICR absolute address from this image's devicetree
 dt_nodelabel(uicr_path NODELABEL "uicr" REQUIRED)
@@ -245,6 +251,8 @@ if(CONFIG_GEN_UICR_GENERATE_PERIPHCONF OR CONFIG_GEN_UICR_SECONDARY_GENERATE_PER
     # Set up periphconf arguments for gen_uicr.py
     list(APPEND periphconf_args --out-periphconf-hex ${periphconf_hex_file})
     list(APPEND gen_uicr_outputs ${periphconf_hex_file})
+    set(BYPRODUCT_GEN_UICR_PERIPHCONF_HEX_NAME ${periphconf_hex_file}
+        CACHE FILEPATH "PERIPHCONF hex file" FORCE)
 
     foreach(elf ${periphconf_elfs})
       list(APPEND periphconf_args --in-periphconf-elf ${elf})
@@ -255,6 +263,8 @@ if(CONFIG_GEN_UICR_GENERATE_PERIPHCONF OR CONFIG_GEN_UICR_SECONDARY_GENERATE_PER
     # Set up mpcconf arguments for gen_uicr.py
     list(APPEND mpcconf_args --out-mpcconf-hex ${mpcconf_hex_file})
     list(APPEND gen_uicr_outputs ${mpcconf_hex_file})
+    set(BYPRODUCT_GEN_UICR_MPCCONF_HEX_NAME ${mpcconf_hex_file}
+        CACHE FILEPATH "MPCCONF hex file" FORCE)
 
     foreach(elf ${mpcconf_elfs})
       list(APPEND mpcconf_args --in-mpcconf-elf ${elf})
@@ -339,6 +349,8 @@ if(CONFIG_GEN_UICR_SECONDARY)
   if(CONFIG_GEN_UICR_SECONDARY_GENERATE_PERIPHCONF)
     list(APPEND secondary_args --out-secondary-periphconf-hex ${secondary_periphconf_hex_file})
     list(APPEND gen_uicr_outputs ${secondary_periphconf_hex_file})
+    set(BYPRODUCT_GEN_UICR_SECONDARY_PERIPHCONF_HEX_NAME ${secondary_periphconf_hex_file}
+        CACHE FILEPATH "Secondary PERIPHCONF hex file" FORCE)
 
     foreach(elf ${secondary_periphconf_elfs})
       list(APPEND secondary_args --in-secondary-periphconf-elf ${elf})
@@ -348,6 +360,8 @@ if(CONFIG_GEN_UICR_SECONDARY)
   if(CONFIG_GEN_UICR_SECONDARY_GENERATE_MPCCONF)
     list(APPEND secondary_args --out-secondary-mpcconf-hex ${secondary_mpcconf_hex_file})
     list(APPEND gen_uicr_outputs ${secondary_mpcconf_hex_file})
+    set(BYPRODUCT_GEN_UICR_SECONDARY_MPCCONF_HEX_NAME ${secondary_mpcconf_hex_file}
+        CACHE FILEPATH "Secondary MPCCONF hex file" FORCE)
 
     foreach(elf ${secondary_mpcconf_elfs})
       list(APPEND secondary_args --in-secondary-mpcconf-elf ${elf})
@@ -362,6 +376,19 @@ endif()
 
 if(CONFIG_GEN_UICR_POLICY_MPCCONF_STAGE_INIT OR CONFIG_GEN_UICR_POLICY_MPCCONF_STAGE_NORMAL)
   list(APPEND policy_args --policy-mpcconf-stage ${CONFIG_GEN_UICR_POLICY_MPCCONF_STAGE_VALUE})
+endif()
+
+# Handle SNAPSHOT configuration (indices 0..6 match Kconfig.template.gen_uicr_snapshot_region)
+if(CONFIG_GEN_UICR_SNAPSHOT_REGIONS)
+  foreach(snapshot_region_idx RANGE 0 6)
+    if(CONFIG_GEN_UICR_SNAPSHOT_REGION_${snapshot_region_idx})
+      list(APPEND snapshot_args
+        --snapshot-region
+        ${CONFIG_GEN_UICR_SNAPSHOT_REGION_${snapshot_region_idx}_ADDRESS}
+        ${CONFIG_GEN_UICR_SNAPSHOT_REGION_${snapshot_region_idx}_SIZE_BYTES}
+      )
+    endif()
+  endforeach()
 endif()
 
 set(periphconf_check_base_cmd
@@ -448,6 +475,7 @@ add_custom_command(
           ${protectedmem_args}
           ${secondary_args}
           ${policy_args}
+          ${snapshot_args}
   ${periphconf_validate_build_command}
   ${secondary_periphconf_validate_build_command}
   DEPENDS ${gen_uicr_depends}

@@ -345,7 +345,9 @@ do { \
 			break; \
 		} \
 	} \
+	TOOLCHAIN_DISABLE_WARNING(TOOLCHAIN_WARNING_SHADOW) \
 	struct log_msg *_msg; \
+	TOOLCHAIN_ENABLE_WARNING(TOOLCHAIN_WARNING_SHADOW) \
 	Z_LOG_MSG_ON_STACK_ALLOC(_msg, Z_LOG_MSG_LEN(_plen, 0)); \
 	Z_LOG_ARM64_VLA_PROTECT(); \
 	if (_plen != 0) { \
@@ -453,7 +455,8 @@ do { \
 	COND_CODE_0(NUM_VA_ARGS_LESS_1(_, ##__VA_ARGS__), \
 		    (/* No args provided, no variable */), \
 		    (static const char _name[] \
-		     __in_section(_log_strings, static, _CONCAT(_name, _)) __used __noasan = \
+		     __in_section(_log_strings, static, _CONCAT(_name, __COUNTER__)) \
+		     __used __noasan = \
 			GET_ARG_N(1, __VA_ARGS__);))
 
 /** @brief Create variable in the dedicated memory section (if enabled).

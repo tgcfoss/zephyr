@@ -16,6 +16,7 @@
 #include <zephyr/pm/device.h>
 #include <zephyr/pm/device_runtime.h>
 #include <zephyr/sys/atomic.h>
+#include <zephyr/sys/minmax.h>
 #include <zephyr/sys/util.h>
 
 LOG_MODULE_REGISTER(analog_axis, CONFIG_INPUT_LOG_LEVEL);
@@ -118,8 +119,8 @@ static int32_t analog_axis_out_deadzone(const struct device *dev,
 	const struct analog_axis_channel_config *axis_cfg = &cfg->channel_cfg[channel];
 	struct analog_axis_calibration *cal = &cfg->calibration[channel];
 
-	int16_t in_range = cal->in_max - cal->in_min;
-	int16_t out_range = axis_cfg->out_max - axis_cfg->out_min;
+	int32_t in_range = (int32_t)cal->in_max - cal->in_min;
+	int32_t out_range = (int32_t)axis_cfg->out_max - axis_cfg->out_min;
 	int16_t in_mid = DIV_ROUND_CLOSEST(cal->in_min + cal->in_max, 2);
 	int16_t in_min = cal->in_min;
 
@@ -146,8 +147,8 @@ static int32_t analog_axis_out_linear(const struct device *dev,
 	const struct analog_axis_channel_config *axis_cfg = &cfg->channel_cfg[channel];
 	struct analog_axis_calibration *cal = &cfg->calibration[channel];
 
-	int16_t in_range = cal->in_max - cal->in_min;
-	int16_t out_range = axis_cfg->out_max - axis_cfg->out_min;
+	int32_t in_range = (int32_t)cal->in_max - cal->in_min;
+	int32_t out_range = (int32_t)axis_cfg->out_max - axis_cfg->out_min;
 
 	return DIV_ROUND_CLOSEST((raw_val - cal->in_min) * out_range, in_range) + axis_cfg->out_min;
 }
@@ -258,10 +259,50 @@ static void analog_axis_thread(void *arg1, void *arg2, void *arg3)
 	}
 }
 
+static int analog_axis_validate(const struct device *dev)
+{
+	const struct analog_axis_config *cfg = dev->config;
+	int i;
+
+	if (cfg->num_channels < 1) {
+		return -EINVAL;
+	}
+
+	const struct analog_axis_channel_config *axis_0_cfg = &cfg->channel_cfg[0];
+	uint8_t channel_id = axis_0_cfg->adc.channel_id;
+
+	for (i = 1; i < cfg->num_channels; i++) {
+		const struct analog_axis_channel_config *axis_cfg = &cfg->channel_cfg[i];
+
+		if (axis_0_cfg->adc.dev != axis_cfg->adc.dev) {
+			LOG_ERR("Channels must use the same ADC: %s != %s",
+				axis_0_cfg->adc.dev->name,
+				axis_cfg->adc.dev->name);
+			return -EINVAL;
+		}
+
+		if (axis_cfg->adc.channel_id < channel_id) {
+			LOG_ERR("Channel must have increasing id: %d < %d",
+				axis_cfg->adc.channel_id,
+				channel_id);
+			return -EINVAL;
+		}
+		channel_id = axis_cfg->adc.channel_id;
+	}
+
+	return 0;
+}
+
 static int analog_axis_init(const struct device *dev)
 {
 	struct analog_axis_data *data = dev->data;
 	k_tid_t tid;
+	int ret;
+
+	ret = analog_axis_validate(dev);
+	if (ret) {
+		return ret;
+	}
 
 	k_sem_init(&data->cal_lock, 1, 1);
 	k_timer_init(&data->timer, NULL, NULL);
@@ -288,8 +329,6 @@ static int analog_axis_init(const struct device *dev)
 	k_timer_start(&data->timer,
 		      K_MSEC(cfg->poll_period_ms), K_MSEC(cfg->poll_period_ms));
 #else
-	int ret;
-
 	atomic_set(&data->suspended, 1);
 
 	pm_device_init_suspended(dev);

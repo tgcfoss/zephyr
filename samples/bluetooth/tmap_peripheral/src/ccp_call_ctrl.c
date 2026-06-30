@@ -16,8 +16,10 @@
 #include <zephyr/bluetooth/audio/tbs.h>
 #include <zephyr/bluetooth/conn.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/__assert.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/toolchain.h>
 
 #define URI_SEPARATOR ":"
 #define CALLER_ID "friend"
@@ -25,39 +27,47 @@
 static uint8_t new_call_index;
 static char remote_uri[CONFIG_BT_TBS_MAX_URI_LENGTH];
 
-static K_SEM_DEFINE(sem_discovery_done, 0, 1);
+static K_SEM_DEFINE(sem_discovery_done, 0U, 1U);
 
 static struct bt_conn *default_conn;
 
 static void discover_cb(struct bt_conn *conn, int err, uint8_t tbs_count, bool gtbs_found)
 {
+	ARG_UNUSED(tbs_count);
+
 	if (!gtbs_found) {
 		printk("CCP: Failed to discover GTBS\n");
 		return;
 	}
 
-	printk("CCP: Discovered GTBS\n");
-
-	if (err) {
-		printk("%s (err %d)\n", __func__, err);
+	if (err != 0) {
+		printk("Discovery failed: %d\n", err);
 		return;
 	}
 
+	printk("CCP: Discovered GTBS\n");
+
 	/* Read Bearer URI Schemes Supported List Characteristic */
-	bt_tbs_client_read_uri_list(conn, BT_TBS_GTBS_INDEX);
+	err = bt_tbs_client_read_uri_list(conn, BT_TBS_GTBS_INDEX);
+	if (err != 0) {
+		printk("Failed to initialize read URI list: %d\n", err);
+	}
 }
 
 static void originate_call_cb(struct bt_conn *conn, int err, uint8_t inst_index, uint8_t call_index)
 {
+	ARG_UNUSED(conn);
+
 	if (inst_index != BT_TBS_GTBS_INDEX) {
 		printk("Unexpected %s for instance %u\n", __func__, inst_index);
 		return;
 	}
 
-	if (err) {
-		printk("%s (err %d)\n", __func__, err);
+	if (err != 0) {
+		printk("Originate call failed: %d\n", err);
 		return;
 	}
+
 	printk("CCP: Call originate successful\n");
 	new_call_index = call_index;
 }
@@ -65,15 +75,18 @@ static void originate_call_cb(struct bt_conn *conn, int err, uint8_t inst_index,
 static void terminate_call_cb(struct bt_conn *conn, int err,
 			      uint8_t inst_index, uint8_t call_index)
 {
+	ARG_UNUSED(conn);
+
 	if (inst_index != BT_TBS_GTBS_INDEX) {
 		printk("Unexpected %s for instance %u\n", __func__, inst_index);
 		return;
 	}
 
-	if (err) {
-		printk("%s (err %d)\n", __func__, err);
+	if (err != 0) {
+		printk("Terminate call failed: %d\n", err);
 		return;
 	}
+
 	printk("CCP: Call with id %d terminated\n", call_index);
 }
 
@@ -82,13 +95,15 @@ static void read_uri_schemes_string_cb(struct bt_conn *conn, int err,
 {
 	size_t i;
 
+	ARG_UNUSED(conn);
+
 	if (inst_index != BT_TBS_GTBS_INDEX) {
 		printk("Unexpected %s for instance %u\n", __func__, inst_index);
 		return;
 	}
 
-	if (err) {
-		printk("%s (err %d)\n", __func__, err);
+	if (err != 0) {
+		printk("Read URI schemes failed: %d\n", err);
 		return;
 	}
 
@@ -136,7 +151,8 @@ int ccp_call_ctrl_init(struct bt_conn *conn)
 	if (err != 0) {
 		return err;
 	}
-	k_sem_take(&sem_discovery_done, K_FOREVER);
+	err = k_sem_take(&sem_discovery_done, K_FOREVER);
+	__ASSERT_NO_MSG(err == 0);
 
 	return err;
 }

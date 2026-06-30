@@ -4,6 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/**
+ * @file
+ * @brief Header file for the UART shell backend.
+ * @ingroup shell_uart
+ */
+
 #ifndef ZEPHYR_INCLUDE_SHELL_UART_H_
 #define ZEPHYR_INCLUDE_SHELL_UART_H_
 
@@ -15,6 +21,7 @@
 extern "C" {
 #endif
 
+/** @cond INTERNAL_HIDDEN */
 extern const struct shell_transport_api shell_uart_transport_api;
 
 #ifndef CONFIG_SHELL_BACKEND_SERIAL_RX_RING_BUFFER_SIZE
@@ -80,6 +87,14 @@ struct shell_uart_polling {
 #else
 #define SHELL_UART_STRUCT struct shell_uart_int_driven
 #endif
+/** @endcond */
+
+/**
+ * @defgroup shell_uart UART shell backend
+ * @ingroup shell_backends
+ * @brief Shell access over a UART serial connection.
+ * @{
+ */
 
 /**
  * @brief Macro for creating shell UART transport instance named @p _name
@@ -110,6 +125,8 @@ const struct shell *shell_backend_uart_get_ptr(void);
  * @returns Pointer to the smp shell data.
  */
 struct smp_shell_data *shell_uart_smp_shell_data_get_ptr(void);
+
+/** @} */
 
 #ifdef __cplusplus
 }

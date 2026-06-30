@@ -13,6 +13,8 @@
 #ifndef ZEPHYR_INCLUDE_NET_TLS_CREDENTIALS_H_
 #define ZEPHYR_INCLUDE_NET_TLS_CREDENTIALS_H_
 
+#include <stddef.h>
+
 /**
  * @brief TLS credentials management
  * @defgroup tls_credentials TLS credentials management
@@ -42,10 +44,6 @@ enum tls_credential_type {
 	 */
 	TLS_CREDENTIAL_PUBLIC_CERTIFICATE,
 
-	/** @deprecated Use TLS_CREDENTIAL_PUBLIC_CERTIFICATE instead.
-	 */
-	TLS_CREDENTIAL_SERVER_CERTIFICATE = TLS_CREDENTIAL_PUBLIC_CERTIFICATE,
-
 	/** Private key. Should be registered together with a corresponding
 	 *  public certificate. Used with certificate-based ciphersuites.
 	 */
@@ -59,7 +57,17 @@ enum tls_credential_type {
 	/** Pre-shared key identity. Should be registered together with a
 	 *  corresponding PSK. Used with PSK-based ciphersuites.
 	 */
-	TLS_CREDENTIAL_PSK_ID
+	TLS_CREDENTIAL_PSK_ID,
+
+	/** Private key resident in PSA. The credential buffer holds a
+	 *  @c psa_key_id_t referencing a key already present in PSA (for example
+	 *  one generated on-device with @c psa_generate_key()), not the key
+	 *  material itself. The key never leaves PSA: handshake signatures are
+	 *  performed through @c psa_sign_hash(). Should be registered together
+	 *  with a corresponding public certificate, in place of
+	 *  @ref TLS_CREDENTIAL_PRIVATE_KEY.
+	 */
+	TLS_CREDENTIAL_PRIVATE_KEY_PSA
 };
 
 /** Secure tag, a reference to TLS credential

@@ -26,10 +26,12 @@
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/bluetooth/uuid.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/__assert.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/sys/util_macro.h>
+#include <zephyr/toolchain.h>
 #include <zephyr/types.h>
 
 #include "tmap_peripheral.h"
@@ -43,7 +45,7 @@ static uint8_t unicast_server_addata[] = {
 	BT_AUDIO_UNICAST_ANNOUNCEMENT_TARGETED, /* Target Announcement */
 	BT_BYTES_LIST_LE16(AVAILABLE_SINK_CONTEXT),
 	BT_BYTES_LIST_LE16(AVAILABLE_SOURCE_CONTEXT),
-	0x00, /* Metadata length */
+	0x00U, /* Metadata length */
 };
 
 static const uint8_t cap_addata[] = {
@@ -75,10 +77,10 @@ static const struct bt_data ad[] = {
 	BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1),
 };
 
-static K_SEM_DEFINE(sem_connected, 0, 1);
-static K_SEM_DEFINE(sem_security_updated, 0, 1);
-static K_SEM_DEFINE(sem_disconnected, 0, 1);
-static K_SEM_DEFINE(sem_discovery_done, 0, 1);
+static K_SEM_DEFINE(sem_connected, 0U, 1U);
+static K_SEM_DEFINE(sem_security_updated, 0U, 1U);
+static K_SEM_DEFINE(sem_disconnected, 0U, 1U);
+static K_SEM_DEFINE(sem_discovery_done, 0U, 1U);
 
 void tmap_discovery_complete(enum bt_tmap_role peer_role, struct bt_conn *conn, int err)
 {
@@ -86,7 +88,7 @@ void tmap_discovery_complete(enum bt_tmap_role peer_role, struct bt_conn *conn, 
 		return;
 	}
 
-	if (err) {
+	if (err != 0) {
 		printk("TMAS discovery failed! (err %d)\n", err);
 		return;
 	}
@@ -125,8 +127,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	printk("Disconnected: %s, reason 0x%02x %s\n", bt_conn_dst_str(conn),
 	       reason, bt_hci_err_to_str(reason));
 
-	bt_conn_unref(default_conn);
-	default_conn = NULL;
+	bt_conn_drop(&default_conn);
 
 	k_sem_give(&sem_disconnected);
 }
@@ -134,6 +135,9 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 static void security_changed(struct bt_conn *conn, bt_security_t level,
 			     enum bt_security_err err)
 {
+	ARG_UNUSED(conn);
+	ARG_UNUSED(level);
+
 	if (err == 0) {
 		printk("Security changed: %u\n", err);
 		k_sem_give(&sem_security_updated);
@@ -167,7 +171,7 @@ static bool adv_rpa_expired_cb(struct bt_le_ext_adv *adv)
 	printk("PRSI: 0x%s\n", rsi_str);
 
 	err = bt_le_ext_adv_set_data(adv, ad, ARRAY_SIZE(ad), NULL, 0);
-	if (err) {
+	if (err != 0) {
 		printk("Failed to set advertising data (err %d)\n", err);
 		return false;
 	}
@@ -186,6 +190,8 @@ static void audio_timer_timeout(struct k_work *work)
 {
 	int err = ccp_terminate_call();
 
+	ARG_UNUSED(work);
+
 	if (err != 0) {
 		printk("Error sending call terminate command!\n");
 	}
@@ -194,6 +200,8 @@ static void audio_timer_timeout(struct k_work *work)
 static void media_play_timeout(struct k_work *work)
 {
 	int err = mcp_send_cmd(BT_MCS_OPC_PAUSE);
+
+	ARG_UNUSED(work);
 
 	if (err != 0) {
 		printk("Error sending pause command!\n");
@@ -249,32 +257,37 @@ int main(void)
 	printk("BAP initialized\n");
 
 	err = bt_le_ext_adv_create(BT_BAP_ADV_PARAM_CONN_QUICK, &adv_cb, &adv);
-	if (err) {
+	if (err != 0) {
 		printk("Failed to create advertising set (err %d)\n", err);
 		return err;
 	}
 
 	err = bt_le_ext_adv_set_data(adv, ad, ARRAY_SIZE(ad), NULL, 0);
-	if (err) {
+	if (err != 0) {
 		printk("Failed to set advertising data (err %d)\n", err);
 		return err;
 	}
 
 	err = bt_le_ext_adv_start(adv, BT_LE_EXT_ADV_START_DEFAULT);
-	if (err) {
+	if (err != 0) {
 		printk("Failed to start advertising set (err %d)\n", err);
 		return err;
 	}
 
 	printk("Advertising successfully started\n");
-	k_sem_take(&sem_connected, K_FOREVER);
-	k_sem_take(&sem_security_updated, K_FOREVER);
+	err = k_sem_take(&sem_connected, K_FOREVER);
+	__ASSERT_NO_MSG(err == 0);
+
+	err = k_sem_take(&sem_security_updated, K_FOREVER);
+	__ASSERT_NO_MSG(err == 0);
 
 	err = bt_tmap_discover(default_conn, &tmap_callbacks);
 	if (err != 0) {
 		return err;
 	}
-	k_sem_take(&sem_discovery_done, K_FOREVER);
+
+	err = k_sem_take(&sem_discovery_done, K_FOREVER);
+	__ASSERT_NO_MSG(err == 0);
 
 	err = ccp_call_ctrl_init(default_conn);
 	if (err != 0) {

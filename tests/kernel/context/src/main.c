@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
- * @brief test context and thread APIs
+/**
+ * @brief Context and thread API tests
  *
  * @defgroup kernel_context_tests Context Tests
  *
@@ -15,7 +15,7 @@
  * k_thread_create(), k_yield(), k_is_in_isr(),
  * k_current_get(), k_cpu_idle(), k_cpu_atomic_idle(),
  * irq_lock(), irq_unlock(),
- * irq_offload(), irq_enable(), irq_disable(),
+ * irq_offload(), irq_enable(), irq_disable().
  * @{
  * @}
  */
@@ -233,7 +233,10 @@ static void _test_kernel_cpu_idle(int atomic)
 	uint64_t t0, dt;
 	unsigned int i, key;
 	uint32_t dur = k_ms_to_ticks_ceil32(10);
-	uint32_t slop = 1 + k_ms_to_ticks_ceil32(1);
+	/* 1 tick for z_add_timeout()'s "at least N" round-up, plus
+	 * 1 ms measurement slop.
+	 */
+	uint32_t slop = 2 + k_ms_to_ticks_ceil32(1);
 	int idle_loops;
 
 	/* Set up a time to trigger events to exit idle mode */
@@ -512,6 +515,49 @@ ZTEST(context, test_interrupts)
 	}
 
 	_test_kernel_interrupts(irq_lock_wrapper, irq_unlock_wrapper, -1);
+}
+
+/**
+ * @brief Verify arch_cpu_irqs_are_enabled() reports IRQ state without altering it.
+ *
+ * @ingroup kernel_context_tests
+ *
+ * @details
+ * The probe must report the current CPU's interrupt-enable state and must be
+ * a pure read — calling it must not change the state it observes.
+ *
+ * Test steps:
+ * - In thread context (IRQs enabled), call the probe twice.
+ * - Lock IRQs with arch_irq_lock() and call the probe twice.
+ * - Restore IRQs with arch_irq_unlock() and call the probe again.
+ *
+ * Expected result:
+ * - Reports enabled in thread context and after unlock; disabled while locked.
+ * - Repeated calls return the same value (the probe does not flip the state).
+ *
+ * @see arch_cpu_irqs_are_enabled()
+ */
+ZTEST(context, test_arch_cpu_irqs_are_enabled)
+{
+	unsigned int key;
+
+	/* In thread context IRQs are enabled. Call twice to confirm the
+	 * probe does not flip the state it observes.
+	 */
+	zassert_true(arch_cpu_irqs_are_enabled(),
+		     "IRQs reported disabled in thread context");
+	zassert_true(arch_cpu_irqs_are_enabled(),
+		     "probe altered the IRQ state (enabled -> disabled)");
+
+	key = arch_irq_lock();
+	zassert_false(arch_cpu_irqs_are_enabled(),
+		      "IRQs reported enabled after arch_irq_lock()");
+	zassert_false(arch_cpu_irqs_are_enabled(),
+		      "probe altered the IRQ state (disabled -> enabled)");
+	arch_irq_unlock(key);
+
+	zassert_true(arch_cpu_irqs_are_enabled(),
+		     "IRQs reported disabled after arch_irq_unlock()");
 }
 
 /**
@@ -912,11 +958,25 @@ static void delayed_thread(void *num, void *arg2, void *arg3)
 }
 
 /**
- * @brief Test timeouts
+ * @brief Verify that k_busy_wait() blocks and returns.
  *
  * @ingroup kernel_context_tests
  *
- * @see k_busy_wait(), k_sleep()
+ * @details
+ * k_busy_wait() must spin for the requested duration and return, both with
+ * interrupts enabled and with them locked. Tick accounting under emulation is
+ * too irregular to assert an exact elapsed time, so the test confirms the call
+ * completes and the worker reports back within a generous timeout.
+ *
+ * Test steps:
+ * - Start a cooperative thread that calls k_busy_wait() (once normally, once
+ *   with IRQs locked) and then gives a semaphore.
+ * - Wait on that semaphore with a timeout of several busy-wait durations.
+ *
+ * Expected result:
+ * - The semaphore take succeeds (the busy-wait thread ran to completion).
+ *
+ * @see k_busy_wait()
  */
 ZTEST(context_one_cpu, test_busy_wait)
 {
@@ -936,11 +996,28 @@ ZTEST(context_one_cpu, test_busy_wait)
 }
 
 /**
- * @brief Test timeouts
+ * @brief Verify k_sleep() duration and delayed-start thread ordering.
  *
  * @ingroup kernel_context_tests
  *
+ * @details
+ * k_sleep() must block the caller for at least the requested time, and threads
+ * created with a start delay must become ready in delay order. Aborting a
+ * delayed thread before it starts must remove it from the timeout queue.
+ *
+ * Test steps:
+ * - Start a thread that sleeps a fixed time and reports back; confirm it wakes.
+ * - Create several threads with different start delays; confirm they report in
+ *   ascending-delay order and that no extra thread fires.
+ * - Repeat with a subset of the delayed threads aborted before they start;
+ *   confirm only the non-cancelled threads run, in order.
+ *
+ * Expected result:
+ * - The sleeper wakes within the expected window.
+ * - Delayed threads run strictly in delay order; cancelled ones never run.
+ *
  * @see k_sleep()
+ * @see k_thread_create()
  */
 ZTEST(context_one_cpu, test_k_sleep)
 {
@@ -1089,13 +1166,28 @@ ZTEST(context_one_cpu, test_k_yield)
 }
 
 /**
- * @brief Test kernel thread creation
+ * @brief Verify a created thread runs and observes correct context state.
  *
  * @ingroup kernel_context_tests
  *
- * @see k_thread_create
+ * @details
+ * A thread started with k_thread_create() must actually run, and from both
+ * thread and ISR context the kernel must report the correct identity and
+ * execution context (k_current_get(), k_is_in_isr()) for a cooperative thread.
+ *
+ * Test steps:
+ * - Create a cooperative thread whose entry runs the context checks against
+ *   its own thread id, including triggering an ISR that reports back.
+ * - The worker asserts its id differs from the parent, that k_is_in_isr() is
+ *   true inside the ISR and false in the thread, and that it is cooperative.
+ *
+ * Expected result:
+ * - The created thread runs and all context/identity checks pass.
+ *
+ * @see k_thread_create()
+ * @see k_current_get()
+ * @see k_is_in_isr()
  */
-
 ZTEST(context_one_cpu, test_thread)
 {
 
